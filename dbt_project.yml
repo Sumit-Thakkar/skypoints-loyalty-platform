@@ -1,0 +1,23 @@
+name: 'skypoints_loyalty'
+version: '1.0.0'
+config-version: 2
+
+profile: 'skypoints_profile'
+
+model-paths: ["models"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Materialize both layers as TABLE for high-volume performance
+models:
+  skypoints_loyalty:
+    staging:
+      +materialized: table
+      +schema: STAGING
+    marts:
+      +materialized: table
+      +schema: MARTS
