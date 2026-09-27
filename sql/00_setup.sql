@@ -21,9 +21,12 @@ CREATE DATABASE IF NOT EXISTS SKYPOINTS_DB
 
 USE DATABASE SKYPOINTS_DB;
 
--- 3. Create RAW Schema (Landing Layer)
+-- 3. Create Schemas
 CREATE SCHEMA IF NOT EXISTS RAW
     COMMENT = 'Raw landing zone: immutable, append-only source feeds';
+
+CREATE SCHEMA IF NOT EXISTS LOGS
+    COMMENT = 'Operational metadata and ingestion audit logging zone';
 
 -- 4. Create Ingestion File Formats inside RAW
 CREATE OR REPLACE FILE FORMAT RAW.FF_PIPE_DELIMITED
