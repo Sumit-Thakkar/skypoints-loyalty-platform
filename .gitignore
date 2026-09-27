@@ -1,0 +1,9 @@
+# dbt runtime artifacts
+target/
+dbt_packages/
+logs/
+
+# Sensitive credentials & environment variables
+profiles.yml
+.env
+*.env
