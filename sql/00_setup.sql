@@ -48,3 +48,37 @@ CREATE OR REPLACE STAGE RAW.STAGE_MEMBER_FEED
 CREATE OR REPLACE STAGE RAW.STAGE_REDEMPTION_FEED
     FILE_FORMAT = RAW.FF_JSON
     COMMENT = 'Internal stage for daily partner airline JSON redemption feeds';
+
+-- ============================================================================
+-- GIT INTEGRATION SETUP (Enables Snowflake Git Workspaces & dbt Projects)
+-- ============================================================================
+
+-- 6. Authorize Snowflake to connect to GitHub via HTTPS
+-- Note: ALLOWED_AUTHENTICATION_SECRETS = all allows Snowflake to use GitHub Personal Access Tokens
+CREATE OR REPLACE API INTEGRATION git_api_integration
+    API_PROVIDER = git_https_api
+    API_ALLOWED_PREFIXES = ('https://github.com/Sumit-Thakkar')
+    ALLOWED_AUTHENTICATION_SECRETS = all
+    ENABLED = TRUE
+    COMMENT = 'Git API integration for SkyPoints loyalty platform repository';
+
+-- 7. Optional Git Secret Template (Required for private repos or 2-way push authentication)
+-- In Snowflake UI: Created via 'Create secret' modal under SKYPOINTS_DB.RAW
+/*
+CREATE OR REPLACE SECRET RAW.github_secret
+    TYPE = password
+    USERNAME = 'Sumit-Thakkar'
+    PASSWORD = '<YOUR_GITHUB_PERSONAL_ACCESS_TOKEN>'
+    COMMENT = 'GitHub Personal Access Token for Git workspace synchronization';
+*/
+
+-- 8. Create Git Repository Stage inside SKYPOINTS_DB.RAW
+-- Connects Snowflake directly to the GitHub repository to sync dbt models and scripts
+CREATE OR REPLACE GIT REPOSITORY SKYPOINTS_DB.RAW.skypoints_repo
+    API_INTEGRATION = git_api_integration
+    ORIGIN = 'https://github.com/Sumit-Thakkar/skypoints-loyalty-platform.git'
+    COMMENT = 'Snowflake Git Repository stage mirroring GitHub main branch';
+
+-- 9. Fetch latest commits and files from GitHub
+ALTER GIT REPOSITORY SKYPOINTS_DB.RAW.skypoints_repo FETCH;
+
