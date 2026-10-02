@@ -37,17 +37,17 @@ COPY INTO RAW.RAW_MEMBER_FEED (
 )
 FROM (
     SELECT
-        TRIM($3)::VARCHAR(255)                                      AS MEMBER_NAME,
-        TRIM($4)::VARCHAR(18)                                       AS MEMBER_ID,
-        TRY_TO_DATE(TRIM($5), 'YYYYMMDD')                           AS ENROLLMENT_DATE,
-        TRY_TO_DATE(TRIM($6), 'YYYYMMDD')                           AS LAST_FLIGHT_DATE,
-        TRIM($7)::CHAR(5)                                           AS TIER_CODE,
-        TRIM($8)::VARCHAR(255)                                      AS AGENT_NAME,
-        TRIM($9)::CHAR(5)                                           AS STATE,
-        TRIM($10)::CHAR(5)                                          AS COUNTRY,
-        NULL::NUMBER(5,0)                                           AS POST_CODE,
-        TRY_TO_DATE(LPAD(TRIM($11), 8, '0'), 'MMDDYYYY')           AS DOB,
-        TRIM($12)::CHAR(1)                                          AS IS_ACTIVE,
+        TRIM($3)::VARCHAR                                           AS MEMBER_NAME,
+        TRIM($4)::VARCHAR                                           AS MEMBER_ID,
+        TRIM($5)::VARCHAR                                           AS ENROLLMENT_DATE,
+        TRIM($6)::VARCHAR                                           AS LAST_FLIGHT_DATE,
+        TRIM($7)::VARCHAR                                           AS TIER_CODE,
+        TRIM($8)::VARCHAR                                           AS AGENT_NAME,
+        TRIM($9)::VARCHAR                                           AS STATE,
+        TRIM($10)::VARCHAR                                          AS COUNTRY,
+        NULL::NUMBER                                                AS POST_CODE,
+        TRIM($11)::VARCHAR                                          AS DOB,
+        TRIM($12)::VARCHAR                                          AS IS_ACTIVE,
         CURRENT_TIMESTAMP()                                         AS INGESTION_TIMESTAMP,
         METADATA$FILENAME                                           AS SOURCE_FILE_NAME
     FROM @RAW.STAGE_MEMBER_FEED
@@ -102,7 +102,7 @@ COPY INTO RAW.RAW_REDEMPTION_FEED_HIST (
 )
 FROM (
     SELECT
-        $1:member_id::VARCHAR(18)   AS MEMBER_ID,
+        $1:member_id::VARCHAR       AS MEMBER_ID,
         $1                          AS RAW_PAYLOAD,
         CURRENT_TIMESTAMP()         AS INGESTION_TIMESTAMP,
         METADATA$FILENAME           AS SOURCE_FILE_NAME
