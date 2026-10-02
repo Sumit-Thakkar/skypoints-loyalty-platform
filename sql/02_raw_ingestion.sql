@@ -14,7 +14,8 @@ USE SCHEMA RAW;
 -- ============================================================================
 -- Design Notes:
 -- - The flat file uses leading pipe delimiters: $1 is empty, $2 is Record_Type ('D'/'H').
--- - WHERE $2 = 'D' skips the header line without failing format contracts.
+-- - SKIP_HEADER = 1 skips the header row (|H|...) at the file format level
+--   (Snowflake COPY INTO prohibits WHERE clauses in transformation queries).
 -- - POST_CODE is supplied as NULL (contract column omitted from physical feed).
 -- - ON_ERROR = 'CONTINUE' bypasses corrupted lines so valid data loads seamlessly.
 -- ============================================================================
@@ -50,7 +51,6 @@ FROM (
         CURRENT_TIMESTAMP()                                         AS INGESTION_TIMESTAMP,
         METADATA$FILENAME                                           AS SOURCE_FILE_NAME
     FROM @RAW.STAGE_MEMBER_FEED
-    WHERE $2 = 'D'
 )
 FILE_FORMAT = (FORMAT_NAME = 'RAW.FF_PIPE_DELIMITED')
 ON_ERROR = 'CONTINUE';
