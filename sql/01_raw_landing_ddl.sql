@@ -29,7 +29,7 @@ CREATE OR REPLACE TABLE RAW.RAW_MEMBER_FEED (
     AGENT_NAME              VARCHAR,                    -- Position 6: Unconstrained VARCHAR
     STATE                   VARCHAR,                    -- Position 7: Unconstrained VARCHAR
     COUNTRY                 VARCHAR,                    -- Position 8: Unconstrained VARCHAR to allow any dirty codes
-    POST_CODE               NUMBER DEFAULT NULL,        -- Position 9: Unconstrained NUMBER contract column
+    POST_CODE               VARCHAR DEFAULT NULL,        -- Position 9: Unconstrained NUMBER contract column
     DOB                     VARCHAR,                    -- Position 10: Raw string as received (e.g. MMDDYYYY)
     IS_ACTIVE               VARCHAR,                    -- Position 11: Unconstrained VARCHAR
     
