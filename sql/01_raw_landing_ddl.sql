@@ -62,7 +62,7 @@ CREATE OR REPLACE TABLE RAW.RAW_REDEMPTION_FEED (
     TXN_ID                  VARCHAR,
     TXN_DATE                VARCHAR,
     PARTNER                 VARCHAR,
-    MILES_REDEEMED          NUMBER,
+    MILES_REDEEMED          VARCHAR,
     STATUS                  VARCHAR,
     -- Audit Metadata Columns
     INGESTION_TIMESTAMP     TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
