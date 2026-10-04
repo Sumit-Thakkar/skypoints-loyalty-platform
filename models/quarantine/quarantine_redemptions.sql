@@ -1,10 +1,13 @@
--- models/staging/stg_quarantine_redemptions.sql
+-- models/quarantine/quarantine_redemptions.sql
 -- -------------------------------------------------------
 -- PURPOSE:
 --   Dead Letter Queue (DLQ) / Quarantine table for redemptions.
 --   Captures all Bronze records from RAW.RAW_REDEMPTION_FEED
 --   that fail ANY DQ rule, preserving raw values and logging
 --   the reason(s) for failure.
+--
+-- LAYER: LOGS (Observability & Governance)
+--   Writes to the LOGS schema (isolated from STAGING/MARTS).
 --
 -- MATERIALISATION: incremental (append-only)
 --   Captures failing records across ingestion runs for audit
@@ -20,7 +23,8 @@
 
 {{ config(
     materialized         = 'incremental',
-    unique_key           = ['SOURCE_FILE_NAME', 'TXN_ID_RAW'],
+    unique_key           = 'QUARANTINE_RECORD_ID',
+    schema               = 'LOGS',
     incremental_strategy = 'merge'
 ) }}
 
@@ -50,7 +54,7 @@ dq_check AS (
         MILES_REDEEMED                                                      AS MILES_REDEEMED_RAW,
         STATUS                                                              AS STATUS_RAW,
 
-        -- Audit
+        -- Audit / Lineage Metadata
         INGESTION_TIMESTAMP,
         SOURCE_FILE_NAME,
 
@@ -88,6 +92,7 @@ dq_check AS (
 failed_records AS (
 
     SELECT
+        MD5(CONCAT_WS('|', COALESCE(TXN_ID_RAW, ''), COALESCE(MEMBER_ID_RAW, ''), COALESCE(TXN_DATE_RAW, ''), SOURCE_FILE_NAME, INGESTION_TIMESTAMP::VARCHAR)) AS QUARANTINE_RECORD_ID,
         TXN_ID_RAW,
         MEMBER_ID_RAW,
         FEED_DATE_RAW,

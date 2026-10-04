@@ -1,23 +1,20 @@
--- models/staging/stg_quarantine_members.sql
+-- models/quarantine/quarantine_members.sql
 -- -------------------------------------------------------
 -- PURPOSE:
---   Dead Letter Queue (DLQ) / Quarantine table.
---   Captures all Bronze records that fail ANY DQ rule,
---   along with the reason(s) for failure.
+--   Dead Letter Queue (DLQ) / Quarantine table for members.
+--   Captures all Bronze records from RAW.RAW_MEMBER_FEED
+--   that fail ANY DQ rule, logging the reason(s) for failure
+--   and preserving the exact line number from the source file.
+--
+-- LAYER: LOGS (Observability & Governance)
+--   Writes to the LOGS schema (isolated from STAGING/MARTS).
 --
 -- MATERIALISATION: incremental (append-only)
---   New failing records are appended each run.
---   We never update existing quarantine rows — they are
---   a historical audit trail. Unique key: composite of
---   SOURCE_FILE_NAME + SOURCE_FILE_ROW_NUMBER (one row
---   per source position, per file, ever).
+--   Captures failing records across ingestion runs for audit
+--   and investigation. Unique key: composite of
+--   SOURCE_FILE_NAME + SOURCE_FILE_ROW_NUMBER.
 --
--- DESIGN:
---   Multiple DQ failures on the same row are pipe-separated
---   into a single QUARANTINE_REASON string, enabling
---   root-cause analysis without joins.
---
--- DQ RULES CHECKED (mirrors stg_members exactly):
+-- DQ RULES CHECKED:
 --   R01 — MEMBER_ID is not null/empty
 --   R02 — MEMBER_NAME is not null/empty
 --   R03 — ENROLLMENT_DATE is parseable YYYYMMDD date
@@ -29,8 +26,9 @@
 -- -------------------------------------------------------
 
 {{ config(
-    materialized        = 'incremental',
-    unique_key          = ['SOURCE_FILE_NAME', 'SOURCE_FILE_ROW_NUMBER'],
+    materialized         = 'incremental',
+    unique_key           = ['SOURCE_FILE_NAME', 'SOURCE_FILE_ROW_NUMBER'],
+    schema               = 'LOGS',
     incremental_strategy = 'merge'
 ) }}
 
@@ -39,12 +37,10 @@ WITH bronze AS (
     SELECT * FROM {{ source('raw', 'raw_member_feed') }}
 
     {% if is_incremental() %}
-    -- Only process files not already quarantine-evaluated.
-    -- A file is "done" if ANY of its rows landed in this table.
-    WHERE SOURCE_FILE_NAME NOT IN (
-        SELECT DISTINCT SOURCE_FILE_NAME
+    -- Only process records from batches ingested after the latest quarantined timestamp
+    WHERE INGESTION_TIMESTAMP > (
+        SELECT COALESCE(MAX(INGESTION_TIMESTAMP), '1970-01-01'::TIMESTAMP_NTZ)
         FROM {{ this }}
-        WHERE SOURCE_FILE_NAME IS NOT NULL
     )
     {% endif %}
 
@@ -53,7 +49,7 @@ WITH bronze AS (
 dq_check AS (
 
     SELECT
-        -- Keep ALL raw columns as-is (no casting — we want to see what broke)
+        -- Raw strings preserved as-is
         MEMBER_ID                                                               AS MEMBER_ID_RAW,
         MEMBER_NAME,
         ENROLLMENT_DATE                                                         AS ENROLLMENT_DATE_RAW,
@@ -66,8 +62,8 @@ dq_check AS (
         STATE,
         POST_CODE                                                               AS POST_CODE_RAW,
 
-        -- Audit
-        LOADED_AT,
+        -- Audit / Lineage Metadata
+        INGESTION_TIMESTAMP,
         SOURCE_FILE_NAME,
         SOURCE_FILE_ROW_NUMBER,
 
@@ -130,12 +126,11 @@ failed_records AS (
         AGENT_NAME,
         STATE,
         POST_CODE_RAW,
-        LOADED_AT,
+        INGESTION_TIMESTAMP,
         SOURCE_FILE_NAME,
         SOURCE_FILE_ROW_NUMBER,
 
         -- Concatenate all triggered rule codes into one reason string
-        -- RTRIM removes trailing ' | ' from the last appended segment
         RTRIM(
             COALESCE(_r01 || ' | ', '')
             || COALESCE(_r02 || ' | ', '')

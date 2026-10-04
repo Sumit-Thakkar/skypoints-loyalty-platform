@@ -21,3 +21,6 @@ models:
     staging:
       +materialized: table
       +schema: STAGING
+    quarantine:
+      +materialized: incremental
+      +schema: LOGS

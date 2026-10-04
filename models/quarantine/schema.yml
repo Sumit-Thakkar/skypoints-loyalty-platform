@@ -1,0 +1,128 @@
+version: 2
+
+# ── Schema & tests for models/quarantine/ ────────────────────────────────────
+
+models:
+
+  # ── quarantine_members ─────────────────────────────────────────────────────
+  - name: quarantine_members
+    description: >
+      Dead Letter Queue (DLQ) for member profiles. Writes to the LOGS schema.
+      Incremental append-only table capturing every Bronze row that fails one
+      or more of the 8 DQ rules. Preserves the exact SOURCE_FILE_ROW_NUMBER
+      for fast triage and root-cause analysis.
+
+    columns:
+      - name: SOURCE_FILE_NAME
+        description: "Source flat file name this row originated from."
+        tests:
+          - not_null
+
+      - name: SOURCE_FILE_ROW_NUMBER
+        description: "1-indexed row position in the source file from METADATA$FILE_ROW_NUMBER."
+        tests:
+          - not_null
+
+      - name: MEMBER_ID_RAW
+        description: "Raw MEMBER_ID exactly as it landed in Bronze (may be NULL/empty)."
+
+      - name: MEMBER_NAME
+        description: "Raw MEMBER_NAME from Bronze."
+
+      - name: ENROLLMENT_DATE_RAW
+        description: "Raw ENROLLMENT_DATE string from Bronze (YYYYMMDD or garbage)."
+
+      - name: LAST_FLIGHT_DATE_RAW
+        description: "Raw LAST_FLIGHT_DATE string from Bronze."
+
+      - name: DOB_RAW
+        description: "Raw DOB string from Bronze (MMDDYYYY possibly without leading zero)."
+
+      - name: TIER_CODE
+        description: "Raw TIER_CODE from Bronze."
+
+      - name: COUNTRY
+        description: "Raw COUNTRY from Bronze."
+
+      - name: IS_ACTIVE
+        description: "Raw IS_ACTIVE flag from Bronze."
+
+      - name: AGENT_NAME
+        description: "Raw AGENT_NAME from Bronze."
+
+      - name: STATE
+        description: "Raw STATE from Bronze."
+
+      - name: POST_CODE_RAW
+        description: "Raw POST_CODE from Bronze (may be non-numeric — triggers R08)."
+
+      - name: INGESTION_TIMESTAMP
+        description: "Ingestion timestamp from Bronze."
+        tests:
+          - not_null
+
+      - name: QUARANTINE_REASON
+        description: >
+          Pipe-separated list of triggered DQ rule codes.
+          e.g. 'R01:MEMBER_ID_NULL_OR_EMPTY | R04:INVALID_COUNTRY'
+        tests:
+          - not_null
+
+      - name: QUARANTINED_AT
+        description: "Timestamp when dbt wrote this row to the quarantine table."
+        tests:
+          - not_null
+
+  # ── quarantine_redemptions ─────────────────────────────────────────────────
+  - name: quarantine_redemptions
+    description: >
+      Dead Letter Queue (DLQ) for redemptions. Writes to the LOGS schema.
+      Incremental append-only table capturing every Bronze redemption row failing
+      one or more DQ rules (R01–R05). QUARANTINE_REASON contains pipe-separated
+      rule violation codes.
+
+    columns:
+      - name: QUARANTINE_RECORD_ID
+        description: "Surrogate key uniquely identifying the failing transaction record."
+        tests:
+          - unique
+          - not_null
+
+      - name: TXN_ID_RAW
+        description: "Raw TXN_ID from Bronze."
+
+      - name: MEMBER_ID_RAW
+        description: "Raw MEMBER_ID from Bronze."
+
+      - name: FEED_DATE_RAW
+        description: "Raw FEED_DATE string from Bronze."
+
+      - name: TXN_DATE_RAW
+        description: "Raw TXN_DATE string from Bronze."
+
+      - name: PARTNER
+        description: "Partner airline name."
+
+      - name: MILES_REDEEMED_RAW
+        description: "Raw MILES_REDEEMED string from Bronze."
+
+      - name: STATUS_RAW
+        description: "Raw STATUS string from Bronze."
+
+      - name: INGESTION_TIMESTAMP
+        description: "Ingestion timestamp from Bronze."
+
+      - name: SOURCE_FILE_NAME
+        description: "Source file name."
+        tests:
+          - not_null
+
+      - name: QUARANTINE_REASON
+        description: "Pipe-separated list of triggered DQ rule codes."
+        tests:
+          - not_null
+
+      - name: QUARANTINED_AT
+        description: "Timestamp when the record was quarantined."
+        tests:
+          - not_null
