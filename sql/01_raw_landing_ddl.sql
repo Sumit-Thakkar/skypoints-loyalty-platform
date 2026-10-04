@@ -35,7 +35,8 @@ CREATE OR REPLACE TABLE RAW.RAW_MEMBER_FEED (
     
     -- Audit / Lineage Metadata Columns
     INGESTION_TIMESTAMP     TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
-    SOURCE_FILE_NAME        VARCHAR
+    SOURCE_FILE_NAME        VARCHAR,
+    SOURCE_FILE_ROW_NUMBER  NUMBER
 )
 COMMENT = 'Lenient Bronze all-string landing table for daily member feeds preserving raw source fidelity for Silver quarantine';
 

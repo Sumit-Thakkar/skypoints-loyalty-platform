@@ -33,7 +33,8 @@ COPY INTO RAW.RAW_MEMBER_FEED (
     DOB,
     IS_ACTIVE,
     INGESTION_TIMESTAMP,
-    SOURCE_FILE_NAME
+    SOURCE_FILE_NAME,
+    SOURCE_FILE_ROW_NUMBER
 )
 FROM (
     SELECT
@@ -45,11 +46,12 @@ FROM (
         TRIM($8)::VARCHAR                                           AS AGENT_NAME,
         TRIM($9)::VARCHAR                                           AS STATE,
         TRIM($10)::VARCHAR                                          AS COUNTRY,
-        NULL::NUMBER                                                AS POST_CODE,
+        NULL::VARCHAR                                               AS POST_CODE,
         TRIM($11)::VARCHAR                                          AS DOB,
         TRIM($12)::VARCHAR                                          AS IS_ACTIVE,
         CURRENT_TIMESTAMP()                                         AS INGESTION_TIMESTAMP,
-        METADATA$FILENAME                                           AS SOURCE_FILE_NAME
+        METADATA$FILENAME                                           AS SOURCE_FILE_NAME,
+        METADATA$FILE_ROW_NUMBER                                    AS SOURCE_FILE_ROW_NUMBER
     FROM @RAW.STAGE_MEMBER_FEED
 )
 FILE_FORMAT = (FORMAT_NAME = 'RAW.FF_PIPE_DELIMITED')
