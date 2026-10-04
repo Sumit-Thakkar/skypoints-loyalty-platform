@@ -28,7 +28,7 @@
 {{ config(
     materialized         = 'incremental',
     unique_key           = ['SOURCE_FILE_NAME', 'SOURCE_FILE_ROW_NUMBER'],
-    schema               = 'LOGS',
+    schema               = 'QUARANTINE',
     incremental_strategy = 'merge'
 ) }}
 

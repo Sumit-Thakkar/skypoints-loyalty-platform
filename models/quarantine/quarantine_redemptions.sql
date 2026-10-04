@@ -24,7 +24,7 @@
 {{ config(
     materialized         = 'incremental',
     unique_key           = 'QUARANTINE_RECORD_ID',
-    schema               = 'LOGS',
+    schema               = 'QUARANTINE',
     incremental_strategy = 'merge'
 ) }}
 

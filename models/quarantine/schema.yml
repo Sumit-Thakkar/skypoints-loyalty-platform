@@ -7,7 +7,7 @@ models:
   # ── quarantine_members ─────────────────────────────────────────────────────
   - name: quarantine_members
     description: >
-      Dead Letter Queue (DLQ) for member profiles. Writes to the LOGS schema.
+      Dead Letter Queue (DLQ) for member profiles. Writes to the QUARANTINE schema.
       Incremental append-only table capturing every Bronze row that fails one
       or more of the 8 DQ rules. Preserves the exact SOURCE_FILE_ROW_NUMBER
       for fast triage and root-cause analysis.
@@ -76,7 +76,7 @@ models:
   # ── quarantine_redemptions ─────────────────────────────────────────────────
   - name: quarantine_redemptions
     description: >
-      Dead Letter Queue (DLQ) for redemptions. Writes to the LOGS schema.
+      Dead Letter Queue (DLQ) for redemptions. Writes to the QUARANTINE schema.
       Incremental append-only table capturing every Bronze redemption row failing
       one or more DQ rules (R01–R05). QUARANTINE_REASON contains pipe-separated
       rule violation codes.
@@ -124,5 +124,56 @@ models:
 
       - name: QUARANTINED_AT
         description: "Timestamp when the record was quarantined."
+        tests:
+          - not_null
+
+  # ── orphan_redemptions ─────────────────────────────────────────────────────
+  - name: orphan_redemptions
+    description: >
+      Orphan redemption transactions table. Writes to the QUARANTINE schema.
+      Captures syntactically valid transactions whose MEMBER_ID does not exist
+      in STAGING.STG_MEMBERS (either un-enrolled or quarantined in quarantine_members).
+
+    columns:
+      - name: TXN_ID
+        description: "Transaction ID."
+        tests:
+          - not_null
+
+      - name: MEMBER_ID
+        description: "Unmatched or quarantined member ID."
+        tests:
+          - not_null
+
+      - name: FEED_DATE
+        description: "Batch feed date."
+
+      - name: TXN_DATE
+        description: "Transaction date."
+
+      - name: PARTNER
+        description: "Partner airline."
+
+      - name: MILES_REDEEMED
+        description: "Miles redeemed."
+
+      - name: STATUS
+        description: "Redemption status."
+
+      - name: INGESTION_TIMESTAMP
+        description: "Ingestion timestamp from Bronze."
+
+      - name: SOURCE_FILE_NAME
+        description: "Source file name."
+        tests:
+          - not_null
+
+      - name: ORPHAN_REASON
+        description: "Reason member was unmatched: MEMBER_EXISTS_BUT_CURRENTLY_QUARANTINED or MEMBER_NOT_ENROLLED_OR_UNKNOWN."
+        tests:
+          - not_null
+
+      - name: DETECTED_AT
+        description: "Timestamp when the orphan record was identified."
         tests:
           - not_null
