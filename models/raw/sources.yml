@@ -21,7 +21,7 @@ sources:
         columns:
           - name: RAW_PAYLOAD
             description: "Full JSON object from the source file stored as Snowflake VARIANT."
-          - name: LOADED_AT
+          - name: INGESTION_TIMESTAMP
             description: "Timestamp when the batch was ingested via COPY INTO."
           - name: SOURCE_FILE_NAME
             description: "Source JSON file name (e.g. redemptions_feed.json from batch folder)."

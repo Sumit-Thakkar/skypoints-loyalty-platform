@@ -9,7 +9,7 @@
 --     3. DEDUPLICATION  — Latest record per MEMBER_ID
 --                         (QUALIFY ROW_NUMBER = 1 ordered
 --                          by LAST_FLIGHT_DATE DESC, then
---                          LOADED_AT DESC as tie-breaker)
+--                          INGESTION_TIMESTAMP DESC as tie-breaker)
 --     4. DERIVED COLUMNS— Age (from DOB), Stale_Member flag
 --     5. VALID RECORDS  — Rows that pass all DQ rules land
 --                         here. Failing rows → stg_quarantine_members
@@ -74,9 +74,8 @@ parsed AS (
         {{ is_stale_member('LAST_FLIGHT_DATE') }}                               AS STALE_MEMBER,
 
         -- Audit
-        LOADED_AT,
+        INGESTION_TIMESTAMP,
         SOURCE_FILE_NAME,
-        SOURCE_FILE_ROW_NUMBER,
 
         -- DQ check helpers (kept internal to this CTE)
         TRY_TO_DATE(TRIM(ENROLLMENT_DATE), 'YYYYMMDD')                         AS _enrollment_date_check,
@@ -110,9 +109,8 @@ valid_records AS (
         POST_CODE,
         AGE,
         STALE_MEMBER,
-        LOADED_AT,
-        SOURCE_FILE_NAME,
-        SOURCE_FILE_ROW_NUMBER
+        INGESTION_TIMESTAMP,
+        SOURCE_FILE_NAME
 
     FROM parsed
 
@@ -153,10 +151,10 @@ deduplicated AS (
 
     -- DEDUPLICATION: latest record per MEMBER_ID wins
     -- Primary order: LAST_FLIGHT_DATE DESC (most recent activity)
-    -- Tie-breaker: LOADED_AT DESC (most recently ingested batch)
+    -- Tie-breaker: INGESTION_TIMESTAMP DESC (most recently ingested batch)
     QUALIFY ROW_NUMBER() OVER (
         PARTITION BY MEMBER_ID
-        ORDER BY LAST_FLIGHT_DATE DESC NULLS LAST, LOADED_AT DESC
+        ORDER BY LAST_FLIGHT_DATE DESC NULLS LAST, INGESTION_TIMESTAMP DESC
     ) = 1
 
 )

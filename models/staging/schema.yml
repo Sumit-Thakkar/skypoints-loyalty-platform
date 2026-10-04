@@ -10,9 +10,9 @@ models:
       Silver cleansed member table. Reads from RAW.RAW_MEMBER_FEED and applies:
         1. Type casting — VARCHAR dates parsed to DATE; POST_CODE cast to NUMBER
         2. Standardisation — UPPER/TRIM on all categorical columns
-        3. DQ filtering — 8 rules; failing rows go to stg_quarantine_members
+        3. DQ filtering — 8 rules; failing rows go to audit.quarantine_members
         4. Deduplication — one row per MEMBER_ID (latest LAST_FLIGHT_DATE wins;
-           tie-break: LOADED_AT DESC)
+           tie-break: INGESTION_TIMESTAMP DESC)
         5. Derived columns — AGE (from DOB), STALE_MEMBER flag (90-day inactivity)
 
     columns:
@@ -79,77 +79,13 @@ models:
               config:
                 where: "STALE_MEMBER IS NOT NULL"
 
-      - name: LOADED_AT
+      - name: INGESTION_TIMESTAMP
         description: "COPY INTO ingestion timestamp from Bronze."
+        tests:
+          - not_null
 
       - name: SOURCE_FILE_NAME
         description: "Source flat file name this row originated from."
-
-      - name: SOURCE_FILE_ROW_NUMBER
-        description: "Row position in the source file."
-
-  # ── stg_quarantine_members ─────────────────────────────────────────────────
-  - name: stg_quarantine_members
-    description: >
-      Dead Letter Queue (DLQ). Incremental append-only table.
-      Captures every Bronze row that fails one or more of the 8 DQ rules.
-      QUARANTINE_REASON is a pipe-separated string of all triggered rule codes.
-      Unique key: SOURCE_FILE_NAME + SOURCE_FILE_ROW_NUMBER (one entry per
-      source row, ever — historical audit trail, never updated).
-
-    columns:
-      - name: MEMBER_ID_RAW
-        description: "Raw MEMBER_ID exactly as it landed in Bronze (may be NULL/empty)."
-
-      - name: MEMBER_NAME
-        description: "Raw MEMBER_NAME from Bronze."
-
-      - name: ENROLLMENT_DATE_RAW
-        description: "Raw ENROLLMENT_DATE string from Bronze (YYYYMMDD or garbage)."
-
-      - name: LAST_FLIGHT_DATE_RAW
-        description: "Raw LAST_FLIGHT_DATE string from Bronze."
-
-      - name: DOB_RAW
-        description: "Raw DOB string from Bronze (MMDDYYYY possibly without leading zero)."
-
-      - name: TIER_CODE
-        description: "Raw TIER_CODE from Bronze."
-
-      - name: COUNTRY
-        description: "Raw COUNTRY from Bronze."
-
-      - name: IS_ACTIVE
-        description: "Raw IS_ACTIVE flag from Bronze."
-
-      - name: AGENT_NAME
-        description: "Raw AGENT_NAME from Bronze."
-
-      - name: STATE
-        description: "Raw STATE from Bronze."
-
-      - name: POST_CODE_RAW
-        description: "Raw POST_CODE from Bronze (may be non-numeric — triggers R08)."
-
-      - name: SOURCE_FILE_NAME
-        description: "Source file this row came from. Part of composite unique key."
-        tests:
-          - not_null
-
-      - name: SOURCE_FILE_ROW_NUMBER
-        description: "Row position in source file. Part of composite unique key."
-        tests:
-          - not_null
-
-      - name: QUARANTINE_REASON
-        description: >
-          Pipe-separated list of triggered DQ rule codes.
-          e.g. 'R01:MEMBER_ID_NULL_OR_EMPTY | R04:INVALID_COUNTRY'
-        tests:
-          - not_null
-
-      - name: QUARANTINED_AT
-        description: "Timestamp when dbt wrote this row to the quarantine table."
         tests:
           - not_null
 
@@ -159,7 +95,7 @@ models:
       Silver cleansed redemptions table. Source: ref('raw_redemption_feed').
       Applies type casting (dates YYYYMMDD→DATE, miles VARCHAR→NUMBER),
       UPPER/TRIM standardisation, 5 DQ rules (R01–R05), and
-      deduplication on TXN_ID (latest DBT_UPDATED_AT wins).
+      deduplication on TXN_ID (latest INGESTION_TIMESTAMP wins).
 
     columns:
       - name: TXN_ID
@@ -203,52 +139,5 @@ models:
 
       - name: SOURCE_FILE_NAME
         description: "Source JSON file name."
-        tests:
-          - not_null
-
-  # ── stg_quarantine_redemptions ─────────────────────────────────────────────
-  - name: stg_quarantine_redemptions
-    description: >
-      Dead Letter Queue (DLQ) for redemptions. Incremental append-only table.
-      Captures every Bronze redemption row failing one or more DQ rules (R01–R05).
-      QUARANTINE_REASON contains pipe-separated rule violation codes.
-
-    columns:
-      - name: TXN_ID_RAW
-        description: "Raw TXN_ID from Bronze."
-
-      - name: MEMBER_ID_RAW
-        description: "Raw MEMBER_ID from Bronze."
-
-      - name: FEED_DATE_RAW
-        description: "Raw FEED_DATE string from Bronze."
-
-      - name: TXN_DATE_RAW
-        description: "Raw TXN_DATE string from Bronze."
-
-      - name: PARTNER
-        description: "Partner airline name."
-
-      - name: MILES_REDEEMED_RAW
-        description: "Raw MILES_REDEEMED string from Bronze."
-
-      - name: STATUS_RAW
-        description: "Raw STATUS string from Bronze."
-
-      - name: INGESTION_TIMESTAMP
-        description: "Ingestion timestamp from Bronze."
-
-      - name: SOURCE_FILE_NAME
-        description: "Source file name."
-        tests:
-          - not_null
-
-      - name: QUARANTINE_REASON
-        description: "Pipe-separated list of triggered DQ rule codes."
-        tests:
-          - not_null
-
-      - name: QUARANTINED_AT
-        description: "Timestamp when the record was quarantined."
         tests:
           - not_null

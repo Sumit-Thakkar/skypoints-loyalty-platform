@@ -64,9 +64,9 @@ sources:
               Postal code ($13). Stored as NUMBER in Bronze — COPY INTO will
               NULL it if source sends non-numeric. Silver casts to INT and
               routes non-numeric values to quarantine via R08.
-          - name: LOADED_AT
+          - name: INGESTION_TIMESTAMP
             description: "Timestamp when the row was ingested via COPY INTO."
           - name: SOURCE_FILE_NAME
             description: "Source flat file name (e.g. member_profile_feed.txt)."
           - name: SOURCE_FILE_ROW_NUMBER
-            description: "Row position within the source file (used as quarantine key)."
+            description: "1-indexed row position within the source file from METADATA$FILE_ROW_NUMBER."
