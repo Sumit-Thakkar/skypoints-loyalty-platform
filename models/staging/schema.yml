@@ -46,11 +46,11 @@ models:
               values: ['GLD', 'SLV', 'PLT', 'BRZ']
 
       - name: COUNTRY
-        description: "Country code. One of the 5 allowed values."
+        description: "Standardised 3-letter ISO country code (USA, IND, CAN, AUS, PHL) mapped via country_mapping seed."
         tests:
           - not_null
           - accepted_values:
-              values: ['USA', 'IND', 'CAN', 'AU', 'PHIL']
+              values: ['USA', 'IND', 'CAN', 'AUS', 'PHL']
 
       - name: IS_ACTIVE
         description: "Member active flag. 'A' = active, 'I' = inactive."

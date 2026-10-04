@@ -18,7 +18,7 @@
 --   R01 — MEMBER_ID is not null/empty
 --   R02 — MEMBER_NAME is not null/empty
 --   R03 — ENROLLMENT_DATE is parseable YYYYMMDD date
---   R04 — COUNTRY is one of 5 known values
+--   R04 — COUNTRY maps to a valid ISO-3 country code via country_mapping seed
 --   R05 — TIER_CODE is one of the known tier values (GLD/SLV/PLT/BRZ)
 --   R06 — DOB is parseable MMDDYYYY date and not in the future
 --   R07 — IS_ACTIVE is 'A' or 'I'
@@ -46,69 +46,77 @@ WITH bronze AS (
 
 ),
 
+country_map AS (
+
+    SELECT * FROM {{ ref('country_mapping') }}
+
+),
+
 dq_check AS (
 
     SELECT
         -- Raw strings preserved as-is
-        MEMBER_ID                                                               AS MEMBER_ID_RAW,
-        MEMBER_NAME,
-        ENROLLMENT_DATE                                                         AS ENROLLMENT_DATE_RAW,
-        LAST_FLIGHT_DATE                                                        AS LAST_FLIGHT_DATE_RAW,
-        DOB                                                                     AS DOB_RAW,
-        TIER_CODE,
-        COUNTRY,
-        IS_ACTIVE,
-        AGENT_NAME,
-        STATE,
-        POST_CODE                                                               AS POST_CODE_RAW,
+        b.MEMBER_ID                                                               AS MEMBER_ID_RAW,
+        b.MEMBER_NAME,
+        b.ENROLLMENT_DATE                                                         AS ENROLLMENT_DATE_RAW,
+        b.LAST_FLIGHT_DATE                                                        AS LAST_FLIGHT_DATE_RAW,
+        b.DOB                                                                     AS DOB_RAW,
+        b.TIER_CODE,
+        b.COUNTRY,
+        b.IS_ACTIVE,
+        b.AGENT_NAME,
+        b.STATE,
+        b.POST_CODE                                                               AS POST_CODE_RAW,
 
         -- Audit / Lineage Metadata
-        INGESTION_TIMESTAMP,
-        SOURCE_FILE_NAME,
-        SOURCE_FILE_ROW_NUMBER,
+        b.INGESTION_TIMESTAMP,
+        b.SOURCE_FILE_NAME,
+        b.SOURCE_FILE_ROW_NUMBER,
 
         -- Pre-compute parse checks
-        TRY_TO_DATE(TRIM(ENROLLMENT_DATE), 'YYYYMMDD')                         AS _enrollment_date_check,
-        TRY_TO_DATE(LPAD(TRIM(DOB), 8, '0'), 'MMDDYYYY')                       AS _dob_check,
+        TRY_TO_DATE(TRIM(b.ENROLLMENT_DATE), 'YYYYMMDD')                         AS _enrollment_date_check,
+        TRY_TO_DATE(LPAD(TRIM(b.DOB), 8, '0'), 'MMDDYYYY')                       AS _dob_check,
 
         -- ── Individual rule failure flags ─────────────────────────────────
 
         -- R01: MEMBER_ID null or empty
-        CASE WHEN TRIM(MEMBER_ID) IS NULL OR TRIM(MEMBER_ID) = ''
+        CASE WHEN TRIM(b.MEMBER_ID) IS NULL OR TRIM(b.MEMBER_ID) = ''
              THEN 'R01:MEMBER_ID_NULL_OR_EMPTY'                 END             AS _r01,
 
         -- R02: MEMBER_NAME null or empty
-        CASE WHEN TRIM(MEMBER_NAME) IS NULL OR TRIM(MEMBER_NAME) = ''
+        CASE WHEN TRIM(b.MEMBER_NAME) IS NULL OR TRIM(b.MEMBER_NAME) = ''
              THEN 'R02:MEMBER_NAME_NULL_OR_EMPTY'               END             AS _r02,
 
         -- R03: ENROLLMENT_DATE not parseable as YYYYMMDD (mandatory)
-        CASE WHEN TRY_TO_DATE(TRIM(ENROLLMENT_DATE), 'YYYYMMDD') IS NULL
+        CASE WHEN TRY_TO_DATE(TRIM(b.ENROLLMENT_DATE), 'YYYYMMDD') IS NULL
              THEN 'R03:ENROLLMENT_DATE_UNPARSEABLE'             END             AS _r03,
 
-        -- R04: COUNTRY not in allowed set
-        CASE WHEN UPPER(TRIM(COUNTRY)) NOT IN ('USA','IND','CAN','AU','PHIL')
+        -- R04: COUNTRY not mapped to a valid standard code in reference seed
+        CASE WHEN c.standard_country_code IS NULL
              THEN 'R04:INVALID_COUNTRY'                         END             AS _r04,
 
         -- R05: TIER_CODE not in allowed set (abbreviated source codes)
-        CASE WHEN UPPER(TRIM(TIER_CODE)) NOT IN ('GLD','SLV','PLT','BRZ')
+        CASE WHEN UPPER(TRIM(b.TIER_CODE)) NOT IN ('GLD','SLV','PLT','BRZ')
              THEN 'R05:INVALID_TIER_CODE'                       END             AS _r05,
 
         -- R06: DOB not parseable as MMDDYYYY or is a future date
-        CASE WHEN TRY_TO_DATE(LPAD(TRIM(DOB), 8, '0'), 'MMDDYYYY') IS NULL
-              OR TRY_TO_DATE(LPAD(TRIM(DOB), 8, '0'), 'MMDDYYYY') > CURRENT_DATE()
+        CASE WHEN TRY_TO_DATE(LPAD(TRIM(b.DOB), 8, '0'), 'MMDDYYYY') IS NULL
+              OR TRY_TO_DATE(LPAD(TRIM(b.DOB), 8, '0'), 'MMDDYYYY') > CURRENT_DATE()
              THEN 'R06:DOB_INVALID_OR_FUTURE'                   END             AS _r06,
 
         -- R07: IS_ACTIVE not a known flag
-        CASE WHEN UPPER(TRIM(IS_ACTIVE)) NOT IN ('A','I')
+        CASE WHEN UPPER(TRIM(b.IS_ACTIVE)) NOT IN ('A','I')
              THEN 'R07:INVALID_IS_ACTIVE_FLAG'                  END             AS _r07,
 
         -- R08: POST_CODE is present but cannot be cast to integer
-        CASE WHEN TRIM(POST_CODE::VARCHAR) IS NOT NULL
-              AND TRIM(POST_CODE::VARCHAR) != ''
-              AND TRY_TO_NUMBER(TRIM(POST_CODE::VARCHAR)) IS NULL
+        CASE WHEN TRIM(b.POST_CODE::VARCHAR) IS NOT NULL
+              AND TRIM(b.POST_CODE::VARCHAR) != ''
+              AND TRY_TO_NUMBER(TRIM(b.POST_CODE::VARCHAR)) IS NULL
              THEN 'R08:POST_CODE_NON_NUMERIC'                   END             AS _r08
 
-    FROM bronze
+    FROM bronze b
+    LEFT JOIN country_map c
+        ON UPPER(TRIM(b.COUNTRY)) = c.raw_country_code
 
 ),
 

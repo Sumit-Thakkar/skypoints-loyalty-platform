@@ -22,7 +22,7 @@
 --   TIER_CODE        VARCHAR(5)    — source values: GLD/SLV/PLT/BRZ
 --   AGENT_NAME       VARCHAR(255)
 --   STATE            VARCHAR(5)
---   COUNTRY          VARCHAR(5)    — USA/IND/CAN/AU/PHIL
+--   COUNTRY          VARCHAR(3)    — Standardised ISO-3: USA/IND/CAN/AUS/PHL
 --   POST_CODE        NUMBER        — INT in spec; cast from VARCHAR in Silver
 --   DOB              DATE          — source format MMDDYYYY (leading zero fix)
 --   IS_ACTIVE        VARCHAR(1)    — A / I
@@ -31,7 +31,7 @@
 --   R01 — MEMBER_ID is not null/empty
 --   R02 — MEMBER_NAME is not null/empty
 --   R03 — ENROLLMENT_DATE is a parseable YYYYMMDD date (mandatory)
---   R04 — COUNTRY is one of the 5 known values
+--   R04 — COUNTRY maps to a valid ISO-3 country code via country_mapping seed
 --   R05 — TIER_CODE is one of the known tier values
 --   R06 — DOB is a parseable MMDDYYYY date and not in the future
 --   R07 — IS_ACTIVE is 'A' or 'I'
@@ -44,53 +44,63 @@ WITH bronze AS (
 
 ),
 
+country_map AS (
+
+    SELECT * FROM {{ ref('country_mapping') }}
+
+),
+
 parsed AS (
 
     SELECT
         -- Identifiers (VARCHAR per spec — NOT cast to NUMBER)
-        TRIM(MEMBER_ID)                                                         AS MEMBER_ID,
-        TRIM(MEMBER_NAME)                                                       AS MEMBER_NAME,
+        TRIM(b.MEMBER_ID)                                                       AS MEMBER_ID,
+        TRIM(b.MEMBER_NAME)                                                     AS MEMBER_NAME,
 
         -- Parsed dates
         -- ENROLLMENT_DATE & LAST_FLIGHT_DATE: source format YYYYMMDD (e.g. 20101012)
-        TRY_TO_DATE(TRIM(ENROLLMENT_DATE), 'YYYYMMDD')                         AS ENROLLMENT_DATE,
-        TRY_TO_DATE(TRIM(LAST_FLIGHT_DATE), 'YYYYMMDD')                        AS LAST_FLIGHT_DATE,
+        TRY_TO_DATE(TRIM(b.ENROLLMENT_DATE), 'YYYYMMDD')                       AS ENROLLMENT_DATE,
+        TRY_TO_DATE(TRIM(b.LAST_FLIGHT_DATE), 'YYYYMMDD')                      AS LAST_FLIGHT_DATE,
         -- DOB: source format MMDDYYYY with possible missing leading zero (e.g. 3051985 → 03051985)
-        TRY_TO_DATE(LPAD(TRIM(DOB), 8, '0'), 'MMDDYYYY')                       AS DOB,
+        TRY_TO_DATE(LPAD(TRIM(b.DOB), 8, '0'), 'MMDDYYYY')                     AS DOB,
 
         -- POST_CODE: cast VARCHAR → NUMBER in Silver (INT per spec)
         -- TRY_TO_NUMBER returns NULL if non-numeric; R08 catches this
-        TRY_TO_NUMBER(TRIM(POST_CODE::VARCHAR))                                 AS POST_CODE,
+        TRY_TO_NUMBER(TRIM(b.POST_CODE::VARCHAR))                               AS POST_CODE,
 
         -- Standardised categoricals (UPPER + TRIM)
-        UPPER(TRIM(TIER_CODE))                                                  AS TIER_CODE,
-        UPPER(TRIM(COUNTRY))                                                    AS COUNTRY,
-        UPPER(TRIM(IS_ACTIVE))                                                  AS IS_ACTIVE,
-        TRIM(AGENT_NAME)                                                        AS AGENT_NAME,
-        TRIM(STATE)                                                             AS STATE,
+        UPPER(TRIM(b.TIER_CODE))                                                AS TIER_CODE,
+        COALESCE(c.standard_country_code, UPPER(TRIM(b.COUNTRY)))               AS COUNTRY,
+        UPPER(TRIM(b.IS_ACTIVE))                                                AS IS_ACTIVE,
+        TRIM(b.AGENT_NAME)                                                      AS AGENT_NAME,
+        TRIM(b.STATE)                                                           AS STATE,
 
         -- Derived columns via macros
-        {{ calculate_age('DOB') }}                                              AS AGE,
-        {{ is_stale_member('LAST_FLIGHT_DATE') }}                               AS STALE_MEMBER,
+        {{ calculate_age('b.DOB') }}                                            AS AGE,
+        {{ is_stale_member('b.LAST_FLIGHT_DATE') }}                             AS STALE_MEMBER,
 
         -- Audit
-        INGESTION_TIMESTAMP,
-        SOURCE_FILE_NAME,
-        SOURCE_FILE_ROW_NUMBER,
+        b.INGESTION_TIMESTAMP,
+        b.SOURCE_FILE_NAME,
+        b.SOURCE_FILE_ROW_NUMBER,
 
         -- DQ check helpers (kept internal to this CTE)
-        TRY_TO_DATE(TRIM(ENROLLMENT_DATE), 'YYYYMMDD')                         AS _enrollment_date_check,
-        TRY_TO_DATE(LPAD(TRIM(DOB), 8, '0'), 'MMDDYYYY')                       AS _dob_check,
+        TRY_TO_DATE(TRIM(b.ENROLLMENT_DATE), 'YYYYMMDD')                       AS _enrollment_date_check,
+        TRY_TO_DATE(LPAD(TRIM(b.DOB), 8, '0'), 'MMDDYYYY')                     AS _dob_check,
+        -- R04: Valid country mapping exists in reference seed
+        CASE WHEN c.standard_country_code IS NOT NULL THEN TRUE ELSE FALSE END AS _country_valid,
         -- R08: POST_CODE source value exists but cannot be cast to number
         CASE
-            WHEN TRIM(POST_CODE::VARCHAR) IS NOT NULL
-             AND TRIM(POST_CODE::VARCHAR) != ''
-             AND TRY_TO_NUMBER(TRIM(POST_CODE::VARCHAR)) IS NULL
+            WHEN TRIM(b.POST_CODE::VARCHAR) IS NOT NULL
+             AND TRIM(b.POST_CODE::VARCHAR) != ''
+             AND TRY_TO_NUMBER(TRIM(b.POST_CODE::VARCHAR)) IS NULL
             THEN TRUE
             ELSE FALSE
         END                                                                     AS _post_code_invalid
 
-    FROM bronze
+    FROM bronze b
+    LEFT JOIN country_map c
+        ON UPPER(TRIM(b.COUNTRY)) = c.raw_country_code
 
 ),
 
@@ -128,8 +138,8 @@ valid_records AS (
         -- R03: ENROLLMENT_DATE is a parseable date (mandatory per spec)
         AND _enrollment_date_check IS NOT NULL
 
-        -- R04: COUNTRY is one of 5 known values
-        AND COUNTRY IN ('USA', 'IND', 'CAN', 'AU', 'PHIL')
+        -- R04: COUNTRY maps to a valid ISO-3 country code via reference seed
+        AND _country_valid = TRUE
 
         -- R05: TIER_CODE is a known value (abbreviated codes from source)
         AND TIER_CODE IN ('GLD', 'SLV', 'PLT', 'BRZ')
