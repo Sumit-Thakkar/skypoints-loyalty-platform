@@ -31,6 +31,13 @@ CREATE SCHEMA IF NOT EXISTS LOGS
 CREATE SCHEMA IF NOT EXISTS QUARANTINE
     COMMENT = 'Dead Letter Queue (DLQ) zone for corrupted, invalid, and orphan records';
 
+CREATE SCHEMA IF NOT EXISTS STAGING
+    COMMENT = 'Silver layer: cleansed, deduplicated, and typed records';
+
+CREATE SCHEMA IF NOT EXISTS MARTS
+    COMMENT = 'Curated Gold consumption zone: country tables and analytical fact marts';
+
+
 -- 4. Create Ingestion File Formats inside RAW
 CREATE OR REPLACE FILE FORMAT RAW.FF_PIPE_DELIMITED
     TYPE = 'CSV'
