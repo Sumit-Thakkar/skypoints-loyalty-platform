@@ -40,8 +40,8 @@ CREATE OR REPLACE FILE FORMAT RAW.FF_PIPE_DELIMITED
 
 CREATE OR REPLACE FILE FORMAT RAW.FF_JSON
     TYPE = 'JSON'
-    STRIP_OUTER_ARRAY = TRUE
-    COMMENT = 'File format for partner airline JSON redemption transaction feeds';
+    STRIP_OUTER_ARRAY = FALSE
+    COMMENT = 'File format for partner airline JSON redemption transaction feeds (NDJSON — one object per line)';
 
 -- 5. Create Snowflake Internal Stages for File Uploads inside RAW
 CREATE OR REPLACE STAGE RAW.STAGE_MEMBER_FEED

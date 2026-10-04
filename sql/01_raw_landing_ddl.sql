@@ -68,4 +68,4 @@ CREATE OR REPLACE TABLE RAW.RAW_REDEMPTION_FEED (
     INGESTION_TIMESTAMP     TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
     SOURCE_FILE_NAME        VARCHAR
 )
-COMMENT = 'Flattened raw transactions parsed from JSON feeds';
+COMMENT = 'Flattened raw transactions parsed from JSON feeds. Populated by dbt incremental MERGE on TXN_ID.';
