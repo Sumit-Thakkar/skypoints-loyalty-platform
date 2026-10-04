@@ -172,8 +172,13 @@ Execute [`sql/00_setup.sql`](sql/00_setup.sql) in a Snowflake Worksheet to creat
 - Dedicated Schemas: `RAW`, `STAGING`, `QUARANTINE`, `LOGS`, `MARTS`
 - File Formats & Stages: `RAW.STAGE_MEMBER_FEED`, `RAW.STAGE_REDEMPTION_FEED`
 
-### Step 2: Ingest Raw Feeds
-Execute [`sql/01_raw_landing_ddl.sql`](sql/01_raw_landing_ddl.sql) and [`sql/02_raw_ingestion.sql`](sql/02_raw_ingestion.sql) to land member profile flat files and JSON feeds into Bronze with full row-level metadata.
+### Step 2: Upload Files to Stages & Ingest Raw Feeds
+1. **Upload Feeds to Snowflake Internal Stages**:
+   - Upload member flat file (`member_profile_feed.txt`) $\rightarrow$ `@RAW.STAGE_MEMBER_FEED`
+   - Upload JSON redemption feed (`redemptions_feed.json`) $\rightarrow$ `@RAW.STAGE_REDEMPTION_FEED`
+2. **Execute Ingestion & Audit Pipeline**:
+   - Run [`sql/01_raw_landing_ddl.sql`](sql/01_raw_landing_ddl.sql) to create landing tables.
+   - Run [`sql/02_raw_ingestion.sql`](sql/02_raw_ingestion.sql) to execute `COPY INTO` pipelines with row-level metadata capture and log metrics into `LOGS.INGESTION_LOGS`.
 
 ### Step 3: Execute dbt Transformations
 

@@ -47,7 +47,10 @@ flowchart LR
 
 ## 2. Layer Specifications
 
-### 2.1 Bronze Layer (`RAW` Schema)
+### 2.1 Inbound Stages & Bronze Layer (`RAW` Schema)
+- **Snowflake Internal Stages**:
+  - `@RAW.STAGE_MEMBER_FEED`: Internal stage for daily pipe-delimited flat files (associated with file format `RAW.FF_PIPE_DELIMITED`).
+  - `@RAW.STAGE_REDEMPTION_FEED`: Internal stage for daily partner airline JSON feeds (associated with file format `RAW.FF_JSON`).
 - **Lenient Landing Pattern**: All flat file fields land as unconstrained `VARCHAR` to absorb upstream schema drift and oversized strings without aborting ingestion.
 - **Semi-Structured Document Store**: JSON payloads are preserved immutably in a `VARIANT` column, with line items parsed via `LATERAL FLATTEN(input => parse_json(raw_payload):redemptions)`.
 - **Traceability Metadata**: Lineage columns `INGESTION_TIMESTAMP`, `SOURCE_FILE_NAME`, and `SOURCE_FILE_ROW_NUMBER` are captured via Snowflake metadata.
