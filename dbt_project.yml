@@ -15,9 +15,9 @@ clean-targets:
 # Materialize both layers as TABLE for high-volume performance
 models:
   skypoints_loyalty:
+    raw:
+      +materialized: incremental
+      +schema: RAW
     staging:
       +materialized: table
       +schema: STAGING
-    marts:
-      +materialized: table
-      +schema: MARTS

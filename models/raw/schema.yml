@@ -1,0 +1,49 @@
+version: 2
+
+# ── Schema & tests for models/raw/ ─────────────────────────────────────────
+
+models:
+  - name: raw_redemption_feed
+    description: >
+      Flattened redemption transactions. Produced by LATERAL FLATTEN on
+      RAW.RAW_REDEMPTION_FEED_HIST. One row per TXN_ID. Incremental
+      materialization with MERGE on TXN_ID — new records inserted,
+      changed records updated, unchanged records skipped.
+      All values stored as VARCHAR (lenient Bronze — no type enforcement).
+
+    columns:
+      - name: TXN_ID
+        description: "Transaction identifier. Unique merge key."
+        tests:
+          - unique
+          - not_null
+
+      - name: MEMBER_ID
+        description: "Loyalty member ID (from parent JSON object). FK to RAW_MEMBER_FEED."
+        tests:
+          - not_null
+
+      - name: FEED_DATE
+        description: "Batch feed date as raw VARCHAR YYYYMMDD (from parent JSON object)."
+
+      - name: TXN_DATE
+        description: "Transaction date as raw VARCHAR YYYYMMDD."
+
+      - name: PARTNER
+        description: "Partner airline name (e.g. AeroLink, SkyPoints, StarFlyer)."
+
+      - name: MILES_REDEEMED
+        description: "Miles redeemed as raw VARCHAR. Cast to NUMBER in Silver (stg_redemptions)."
+
+      - name: STATUS
+        description: "Redemption status as raw VARCHAR (e.g. COMPLETED, PENDING)."
+
+      - name: INGESTION_TIMESTAMP
+        description: "INGESTION_TIMESTAMP from the source hist batch row."
+        tests:
+          - not_null
+
+      - name: SOURCE_FILE_NAME
+        description: "Source JSON file name this transaction came from."
+        tests:
+          - not_null

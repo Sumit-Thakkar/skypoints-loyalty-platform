@@ -1,0 +1,27 @@
+version: 2
+
+# ── Sources consumed by models/raw/ ────────────────────────────────────────
+# raw_redemption_feed_hist is the Bronze VARIANT table populated by COPY INTO.
+# It is the ONLY source for the raw layer dbt models.
+# Staging models do NOT source from here — they use ref('raw_redemption_feed').
+
+sources:
+  - name: raw
+    database: SKYPOINTS_DB
+    schema: RAW
+    description: >
+      Bronze landing zone for JSON redemption feed.
+      Populated by COPY INTO (VARIANT format) via 02_raw_ingestion.sql.
+
+    tables:
+      - name: raw_redemption_feed_hist
+        description: >
+          One VARIANT row per JSON batch file loaded from
+          @RAW.STAGE_REDEMPTION_FEED. Full payload stored as-is — no parsing.
+        columns:
+          - name: RAW_PAYLOAD
+            description: "Full JSON object from the source file stored as Snowflake VARIANT."
+          - name: LOADED_AT
+            description: "Timestamp when the batch was ingested via COPY INTO."
+          - name: SOURCE_FILE_NAME
+            description: "Source JSON file name (e.g. redemptions_feed.json from batch folder)."
