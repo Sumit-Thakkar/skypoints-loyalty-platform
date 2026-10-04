@@ -173,4 +173,62 @@ CREATE OR REPLACE TABLE MARTS.TABLE_PHILIPPINES (
 )
 COMMENT = 'Gold mart for members residing in Philippines (Deliverable 3)';
 
+-- ============================================================================
+-- 3. GOLD ANALYTICAL FACT TABLE (MARTS SCHEMA)
+-- Deliverable 4: Redemptions joined back to Member Profiles with behavioral & demographic enrichment
+-- ============================================================================
+CREATE OR REPLACE TABLE MARTS.FCT_MEMBER_REDEMPTIONS (
+    TXN_ID                  VARCHAR       NOT NULL,
+    MEMBER_ID               VARCHAR(18)   NOT NULL,
+    FEED_DATE               DATE,
+    TXN_DATE                DATE          NOT NULL,
+    PARTNER                 VARCHAR       NOT NULL,
+    PARTNER_TYPE            VARCHAR       NOT NULL,     -- INTERNAL vs ALLIANCE_PARTNER
+    MILES_REDEEMED          NUMBER        NOT NULL,
+    REDEMPTION_STATUS       VARCHAR       NOT NULL,
+    MEMBER_NAME             VARCHAR(255)  NOT NULL,
+    MEMBER_TIER_CODE        VARCHAR(5)    NOT NULL,
+    MEMBER_TIER_NAME        VARCHAR(20)   NOT NULL,     -- Gold, Platinum, Silver, Bronze
+    MEMBER_COUNTRY          VARCHAR(3)    NOT NULL,
+    MEMBER_STATE            VARCHAR(5),
+    MEMBER_IS_ACTIVE        VARCHAR(1)    NOT NULL,
+    MEMBER_AGE              NUMBER,
+    MEMBER_AGE_GROUP        VARCHAR(20),                -- Under 25, 25-39, 40-59, 60+
+    MEMBER_ENROLLMENT_DATE  DATE          NOT NULL,
+    MEMBER_LAST_FLIGHT_DATE DATE,
+    MEMBER_TENURE_DAYS_AT_TXN NUMBER,                   -- Days enrolled before transaction
+    DAYS_SINCE_LAST_FLIGHT_AT_TXN NUMBER,               -- Flight recency at transaction date
+    WAS_STALE_AT_REDEMPTION VARCHAR(1),                 -- Inactivity flag (>90 days) at transaction date
+    REDEMPTION_INGESTION_TIMESTAMP TIMESTAMP_NTZ NOT NULL,
+    MART_LOADED_AT          TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    CONSTRAINT PK_FCT_MEMBER_REDEMPTIONS PRIMARY KEY (TXN_ID),
+    CONSTRAINT FK_FCT_MEMBER FOREIGN KEY (MEMBER_ID) REFERENCES STAGING.STG_MEMBERS(MEMBER_ID)
+)
+COMMENT = 'Gold analytical fact mart joining flattened redemptions with enriched member profiles (Deliverable 4)';
+
+-- ============================================================================
+-- 4. GOLD AGGREGATED SUMMARY FACT TABLE (MARTS SCHEMA)
+-- Pre-aggregated metrics for executive and dashboard consumption
+-- ============================================================================
+CREATE OR REPLACE TABLE MARTS.AGG_COUNTRY_REDEMPTION_SUMMARY (
+    MEMBER_COUNTRY          VARCHAR(3)    NOT NULL,
+    PARTNER                 VARCHAR       NOT NULL,
+    PARTNER_TYPE            VARCHAR       NOT NULL,
+    REDEMPTION_STATUS       VARCHAR       NOT NULL,
+    TOTAL_TRANSACTIONS      NUMBER        NOT NULL,
+    UNIQUE_REDEEMING_MEMBERS NUMBER       NOT NULL,
+    TOTAL_MILES_REDEEMED    NUMBER        NOT NULL,
+    AVG_MILES_PER_TXN       NUMBER(10, 2) NOT NULL,
+    MIN_MILES_REDEEMED      NUMBER        NOT NULL,
+    MAX_MILES_REDEEMED      NUMBER        NOT NULL,
+    STALE_MEMBER_TXN_COUNT  NUMBER        NOT NULL,
+    STALE_MEMBER_MILES_REDEEMED NUMBER    NOT NULL,
+    EARLIEST_TXN_DATE       DATE,
+    LATEST_TXN_DATE         DATE,
+    MART_LOADED_AT          TIMESTAMP_NTZ DEFAULT CURRENT_TIMESTAMP(),
+    CONSTRAINT PK_AGG_COUNTRY_REDEMPTIONS PRIMARY KEY (MEMBER_COUNTRY, PARTNER, PARTNER_TYPE, REDEMPTION_STATUS)
+)
+COMMENT = 'Gold aggregated mart summarizing mileage redemptions by country, partner, and status for O(1) executive reporting';
+
+
 

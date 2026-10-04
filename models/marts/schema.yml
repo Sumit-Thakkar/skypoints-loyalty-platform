@@ -97,4 +97,87 @@ models:
           - accepted_values:
               values: ['PHL']
 
+  # ── Redemption Analytical Fact Mart ─────────────────────────────────────────
+  - name: fct_member_redemptions
+    description: >
+      Curated Gold analytical fact table joining partner redemption transactions
+      with enriched member demographics, behavioral tenure, and partner classification (Deliverable 4).
+    columns:
+      - name: TXN_ID
+        description: "Primary key. Unique transaction identifier."
+        tests:
+          - unique
+          - not_null
+      - name: MEMBER_ID
+        description: "Foreign key to loyalty member profile."
+        tests:
+          - not_null
+      - name: PARTNER_TYPE
+        description: "Classification of partner: INTERNAL (SkyPoints) vs ALLIANCE_PARTNER."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['INTERNAL', 'ALLIANCE_PARTNER']
+      - name: MILES_REDEEMED
+        description: "Number of miles redeemed."
+        tests:
+          - not_null
+      - name: REDEMPTION_STATUS
+        description: "Standardised redemption transaction status."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['COMPLETED', 'PENDING', 'CANCELLED']
+      - name: MEMBER_COUNTRY
+        description: "Standardised ISO-3 country of the member who made the redemption."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['USA', 'IND', 'CAN', 'AUS', 'PHL']
+      - name: WAS_STALE_AT_REDEMPTION
+        description: "Flag indicating whether member had >90 days flight inactivity when redeeming."
+        tests:
+          - accepted_values:
+              values: ['Y', 'N']
+              config:
+                where: "WAS_STALE_AT_REDEMPTION IS NOT NULL"
+
+  # ── Aggregated Country Redemption Summary Mart ──────────────────────────────
+  - name: agg_country_redemption_summary
+    description: >
+      Curated Gold aggregate fact mart summarizing mileage redemption metrics
+      by member country, airline partner, partner type, and redemption status.
+    columns:
+      - name: MEMBER_COUNTRY
+        description: "Standardised ISO-3 member country."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['USA', 'IND', 'CAN', 'AUS', 'PHL']
+      - name: PARTNER
+        description: "Airline partner name."
+        tests:
+          - not_null
+      - name: PARTNER_TYPE
+        description: "Classification of partner: INTERNAL vs ALLIANCE_PARTNER."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['INTERNAL', 'ALLIANCE_PARTNER']
+      - name: REDEMPTION_STATUS
+        description: "Redemption transaction status."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['COMPLETED', 'PENDING', 'CANCELLED']
+      - name: TOTAL_TRANSACTIONS
+        description: "Total count of redemption transactions."
+        tests:
+          - not_null
+      - name: TOTAL_MILES_REDEEMED
+        description: "Sum of total miles redeemed."
+        tests:
+          - not_null
+
+
 
