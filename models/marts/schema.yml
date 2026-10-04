@@ -1,0 +1,100 @@
+version: 2
+
+models:
+
+  # ── India Country Mart ──────────────────────────────────────────────────────
+  - name: table_india
+    description: >
+      Curated Gold mart for members located in India (Deliverable 3).
+      Filtered from STAGING.STG_MEMBERS where COUNTRY = 'IND'.
+      Enforces the "latest record wins" rule.
+    columns:
+      - name: MEMBER_ID
+        description: "Unique loyalty member ID in India."
+        tests:
+          - unique
+          - not_null
+      - name: COUNTRY
+        description: "Country code. Strictly 'IND'."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['IND']
+
+  # ── USA Country Mart ────────────────────────────────────────────────────────
+  - name: table_usa
+    description: >
+      Curated Gold mart for members located in USA (Deliverable 3).
+      Filtered from STAGING.STG_MEMBERS where COUNTRY = 'USA'.
+      Enforces the "latest record wins" rule.
+    columns:
+      - name: MEMBER_ID
+        description: "Unique loyalty member ID in USA."
+        tests:
+          - unique
+          - not_null
+      - name: COUNTRY
+        description: "Country code. Strictly 'USA'."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['USA']
+
+  # ── Canada Country Mart ─────────────────────────────────────────────────────
+  - name: table_canada
+    description: >
+      Curated Gold mart for members located in Canada (Deliverable 3).
+      Filtered from STAGING.STG_MEMBERS where COUNTRY = 'CAN'.
+      Enforces the "latest record wins" rule.
+    columns:
+      - name: MEMBER_ID
+        description: "Unique loyalty member ID in Canada."
+        tests:
+          - unique
+          - not_null
+      - name: COUNTRY
+        description: "Country code. Strictly 'CAN'."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['CAN']
+
+  # ── Australia Country Mart ──────────────────────────────────────────────────
+  - name: table_australia
+    description: >
+      Curated Gold mart for members located in Australia (Deliverable 3).
+      Filtered from STAGING.STG_MEMBERS where COUNTRY = 'AUS'.
+      Enforces the "latest record wins" rule.
+    columns:
+      - name: MEMBER_ID
+        description: "Unique loyalty member ID in Australia."
+        tests:
+          - unique
+          - not_null
+      - name: COUNTRY
+        description: "Country code. Strictly 'AUS'."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['AUS']
+
+  # ── Philippines Country Mart ────────────────────────────────────────────────
+  - name: table_philippines
+    description: >
+      Curated Gold mart for members located in Philippines (Deliverable 3).
+      Filtered from STAGING.STG_MEMBERS where COUNTRY = 'PHL'.
+      Enforces the "latest record wins" rule.
+    columns:
+      - name: MEMBER_ID
+        description: "Unique loyalty member ID in Philippines."
+        tests:
+          - unique
+          - not_null
+      - name: COUNTRY
+        description: "Country code. Strictly 'PHL'."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['PHL']
+
+
