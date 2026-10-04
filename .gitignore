@@ -4,6 +4,5 @@ dbt_packages/
 logs/
 
 # Sensitive credentials & environment variables
-profiles.yml
 .env
 *.env

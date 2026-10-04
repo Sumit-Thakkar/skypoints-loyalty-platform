@@ -1,0 +1,10 @@
+skypoints_profile:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      role: 'ACCOUNTADMIN'
+      warehouse: 'SKYPOINTS_WH'
+      database: 'SKYPOINTS_DB'
+      schema: 'STAGING'
+      threads: 8
