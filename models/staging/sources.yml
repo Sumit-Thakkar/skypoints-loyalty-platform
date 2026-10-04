@@ -1,0 +1,72 @@
+version: 2
+
+# ── Sources consumed by models/staging/ ────────────────────────────────────
+# raw_member_feed is the only Bronze table consumed directly by staging models.
+#
+# raw_redemption_feed_hist → declared in models/raw/sources.yml (raw layer owns it)
+# raw_redemption_feed      → a dbt model; reference via ref('raw_redemption_feed')
+
+sources:
+  - name: raw
+    database: SKYPOINTS_DB
+    schema: RAW
+    description: >
+      Lenient Bronze landing zone for the member profile feed.
+      All columns stored as raw VARCHAR/NUMBER — no type enforcement at ingestion.
+      Populated by COPY INTO via sql/02_raw_ingestion.sql.
+
+    tables:
+      - name: raw_member_feed
+        description: >
+          Pipe-delimited member profile feed. One row per source file record.
+          All columns are VARCHAR. Dates land as-is (YYYYMMDD strings for
+          ENROLLMENT_DATE / LAST_FLIGHT_DATE; MMDDYYYY with possible missing
+          leading zero for DOB). May contain dirty or corrupt records —
+          cleansing and validation happen in the staging layer (stg_members).
+        columns:
+          - name: MEMBER_ID
+            description: >
+              Loyalty member identifier ($4 in pipe file). VARCHAR.
+              May be NULL or empty in corrupt records.
+          - name: MEMBER_NAME
+            description: >
+              Member full name ($3). Mandatory per spec. May be NULL/empty
+              in dirty records — caught by R02 in stg_members.
+          - name: ENROLLMENT_DATE
+            description: >
+              Date of enrollment as raw VARCHAR ($5).
+              Source format: YYYYMMDD (e.g. '20101012'). Mandatory per spec.
+          - name: LAST_FLIGHT_DATE
+            description: >
+              Date of last flight as raw VARCHAR ($6).
+              Source format: YYYYMMDD (e.g. '20121013').
+          - name: TIER_CODE
+            description: >
+              Loyalty tier abbreviated code ($7).
+              Expected values: GLD / SLV / PLT / BRZ.
+          - name: AGENT_NAME
+            description: "Booking agent name ($8)."
+          - name: STATE
+            description: "State/province code ($9)."
+          - name: COUNTRY
+            description: >
+              Country code ($10). Expected values: USA / IND / CAN / AU / PHIL.
+          - name: DOB
+            description: >
+              Date of birth as raw VARCHAR ($11).
+              Source format: MMDDYYYY — may have missing leading zero
+              (e.g. '3051985' instead of '03051985').
+              Parsed in Silver using LPAD + TRY_TO_DATE.
+          - name: IS_ACTIVE
+            description: "Active member flag ($12). 'A' = active, 'I' = inactive."
+          - name: POST_CODE
+            description: >
+              Postal code ($13). Stored as NUMBER in Bronze — COPY INTO will
+              NULL it if source sends non-numeric. Silver casts to INT and
+              routes non-numeric values to quarantine via R08.
+          - name: LOADED_AT
+            description: "Timestamp when the row was ingested via COPY INTO."
+          - name: SOURCE_FILE_NAME
+            description: "Source flat file name (e.g. member_profile_feed.txt)."
+          - name: SOURCE_FILE_ROW_NUMBER
+            description: "Row position within the source file (used as quarantine key)."
