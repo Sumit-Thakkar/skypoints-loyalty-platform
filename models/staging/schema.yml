@@ -89,6 +89,11 @@ models:
         tests:
           - not_null
 
+      - name: SOURCE_FILE_ROW_NUMBER
+        description: "Row position in the source file."
+        tests:
+          - not_null
+
   # ── stg_redemptions ────────────────────────────────────────────────────────
   - name: stg_redemptions
     description: >

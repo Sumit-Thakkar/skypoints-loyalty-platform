@@ -76,6 +76,7 @@ parsed AS (
         -- Audit
         INGESTION_TIMESTAMP,
         SOURCE_FILE_NAME,
+        SOURCE_FILE_ROW_NUMBER,
 
         -- DQ check helpers (kept internal to this CTE)
         TRY_TO_DATE(TRIM(ENROLLMENT_DATE), 'YYYYMMDD')                         AS _enrollment_date_check,
@@ -110,7 +111,8 @@ valid_records AS (
         AGE,
         STALE_MEMBER,
         INGESTION_TIMESTAMP,
-        SOURCE_FILE_NAME
+        SOURCE_FILE_NAME,
+        SOURCE_FILE_ROW_NUMBER
 
     FROM parsed
 

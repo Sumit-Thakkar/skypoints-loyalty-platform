@@ -96,6 +96,10 @@ valid_records AS (
         -- R05: STATUS must be a known value
         AND UPPER(TRIM(STATUS)) IN ('COMPLETED', 'PENDING', 'CANCELLED')
 
+        -- Referential integrity: member must exist in clean Silver members
+        -- Unmatched / quarantined member transactions are routed to quarantine.orphan_redemptions
+        AND MEMBER_ID IN (SELECT MEMBER_ID FROM {{ ref('stg_members') }})
+
 ),
 
 deduplicated AS (
