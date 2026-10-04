@@ -23,4 +23,4 @@ models:
       +schema: STAGING
     quarantine:
       +materialized: incremental
-      +schema: LOGS
+      +schema: QUARANTINE

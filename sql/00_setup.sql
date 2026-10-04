@@ -26,7 +26,10 @@ CREATE SCHEMA IF NOT EXISTS RAW
     COMMENT = 'Raw landing zone: immutable, append-only source feeds';
 
 CREATE SCHEMA IF NOT EXISTS LOGS
-    COMMENT = 'Operational metadata, audit logs, and quarantine Dead Letter Queue (DLQ) zone';
+    COMMENT = 'Operational metadata and ingestion audit logging zone';
+
+CREATE SCHEMA IF NOT EXISTS QUARANTINE
+    COMMENT = 'Dead Letter Queue (DLQ) zone for corrupted, invalid, and orphan records';
 
 -- 4. Create Ingestion File Formats inside RAW
 CREATE OR REPLACE FILE FORMAT RAW.FF_PIPE_DELIMITED
