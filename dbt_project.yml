@@ -8,11 +8,13 @@ model-paths: ["models"]
 test-paths: ["tests"]
 macro-paths: ["macros"]
 
+seed-paths: ["seeds"]
+
 clean-targets:
   - "target"
   - "dbt_packages"
 
-# Materialize both layers as TABLE for high-volume performance
+# Model layers configuration
 models:
   skypoints_loyalty:
     raw:
@@ -24,3 +26,17 @@ models:
     quarantine:
       +materialized: incremental
       +schema: QUARANTINE
+    marts:
+      +materialized: table
+      +schema: MARTS
+
+# Seeds configuration
+seeds:
+  skypoints_loyalty:
+    +schema: STAGING
+    country_mapping:
+      +column_types:
+        raw_country_code: VARCHAR(10)
+        standard_country_code: VARCHAR(3)
+        country_name: VARCHAR(50)
+

@@ -1,0 +1,23 @@
+version: 2
+
+seeds:
+  - name: country_mapping
+    description: >
+      Reference mapping table standardising heterogeneous raw country codes
+      (2-letter, 3-letter, 4-letter) to official ISO 3166-1 Alpha-3 codes.
+    columns:
+      - name: raw_country_code
+        description: "Raw country code string as received in incoming files (e.g. US, USA, PHIL, PHL, AU, AUS)."
+        tests:
+          - not_null
+          - unique
+      - name: standard_country_code
+        description: "Standardised ISO 3166-1 Alpha-3 code (USA, IND, CAN, AUS, PHL)."
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['USA', 'IND', 'CAN', 'AUS', 'PHL']
+      - name: country_name
+        description: "Full English country name."
+        tests:
+          - not_null
